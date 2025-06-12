@@ -124,6 +124,8 @@
                         style="width: 100%; height: 100%;" 
                         frameborder="0" 
                         allow="gamepad *;"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+                        referrerpolicy="no-referrer"
                         class="w-full h-full">
                     </iframe>
                 </div>
@@ -359,15 +361,45 @@
             });
         });
 
-        // Add loading state for game iframe
+        // Add loading state for game iframe and prevent redirects
         window.addEventListener('load', function() {
             const iframe = document.querySelector('iframe');
             if (iframe) {
                 iframe.addEventListener('load', function() {
                     console.log('Game loaded successfully!');
                 });
+                
+                // Prevent iframe from redirecting parent window
+                iframe.addEventListener('beforeunload', function(e) {
+                    e.preventDefault();
+                    return false;
+                });
             }
         });
+
+        // Block navigation attempts from iframe
+        window.addEventListener('message', function(e) {
+            if (e.origin !== window.location.origin) {
+                if (e.data && (e.data.type === 'navigate' || e.data.type === 'redirect')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Blocked navigation attempt from iframe');
+                    return false;
+                }
+            }
+        });
+
+        // Override window.open for iframe context
+        (function() {
+            const originalOpen = window.open;
+            window.open = function(url, name, features) {
+                if (name === '_parent' || name === '_top') {
+                    console.log('Blocked attempt to open in parent window');
+                    return null;
+                }
+                return originalOpen.call(this, url, name, features);
+            };
+        })();
     </script>
 
     <!-- Schema.org structured data -->
